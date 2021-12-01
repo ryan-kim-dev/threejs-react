@@ -1,50 +1,75 @@
+import React, { useRef, Suspense } from 'react';
+import {Canvas, extend, useFrame, useLoader, useThree} from "react-three-fiber";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import * as THREE from 'three';
 import './App.css';
-import { 
-  Canvas
-} from 'react-three-fiber';
-import { Physics } from 'use-cannon';
-import { Suspense } from 'react';
-import Orbit from './components/Orbit';
-import Box from './components/Box';
-import Background from './components/Background';
-import Floor from './components/Floor';
-import ColorPicker from './components/ColorPicker';
-import Cars from './components/Cars'
-import CameraControls from './components/CameraControls'
-import CameraButtons from './components/CameraButtons'
-import Lights from './components/Lights'
-import Effects from './components/Effects'
 
-function App() {
-  return (
-    <div style={{height: '100vh', width: '100vw'}}>
-      <ColorPicker />
-      <CameraButtons />
-      <Canvas 
-        gl={{
-          powerPreference: "high-performance",
-          antialias: false,
-          stencil: false,
-          depth: false
-        }}
-        shadowMap
-        style={{background: 'black'}} 
-        camera={{ position: [7,7,7] }}
-      >
-        <Suspense fallback={null}>
-          <Background />
-        </Suspense>
-        <CameraControls />
-        <Lights/>
-        <Orbit />
-        <Physics>
-          <Cars />
-          <Floor position={[0,-0.5,0]}/>
-        </Physics>
-        <Effects />
-      </Canvas>
-    </div>
-  );
+extend({ OrbitControls});
+
+const Orbit = () => {
+    const { camera, gl } = useThree();
+    return (
+        <orbitControls args={[camera, gl.domElement]} />
+    );
+};
+
+const Box = (props) => {
+    const ref = useRef();
+    const texture = useLoader(
+        THREE.TextureLoader,
+        '/wood.jpg'
+    );
+    useFrame(state => {
+        ref.current.rotation.y += 0.01;
+    });
+
+    return (
+        <mesh ref={ref} {...props} castShadow>
+            <boxBufferGeometry />
+            <meshPhysicalMaterial
+                map={texture}
+            />
+        </mesh>
+    )
+};
+
+const Floor = (props) => {
+    return (
+        <mesh {...props} receiveShadow>
+            <boxBufferGeometry args={[10, 1, 10]} />
+            <meshPhysicalMaterial />
+        </mesh>
+    );
+};
+
+const Bulb = props => {
+    return (
+        <mesh {...props}>
+            <pointLight />
+            <sphereBufferGeometry args={[0.5]} />
+            <meshPhongMaterial emissive='green' />
+        </mesh>
+    )
 }
+const App = () => {
+    return (
+        <div style={{height: '100vh', width: '100vw'}}>
+            <Canvas
+                shadowMap
+                style={{background: 'black'}}
+                camera={{ position: [3, 5, 3]}}
+            >
+                <ambientLight intensity={0.1} />
+                <Bulb position={[0, 3, 0]} />
+                <axesHelper args={[5]} />
+                <Suspense fallback={null}>
+                    <Box position={[0, 1, 0]} />
+                </Suspense>
+                <Floor position={[0,-0.5,0]} />
+                <Orbit />
+            </Canvas>
+        </div>
+    )
+};
 
 export default App;
