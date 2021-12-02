@@ -1,8 +1,9 @@
-import React, { useRef, Suspense } from 'react';
+import React, { Suspense, useRef, useEffect } from 'react';
 import {Canvas, extend, useFrame, useLoader, useThree} from "react-three-fiber";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import * as THREE from 'three';
 import './App.css';
+import axios from "axios";
 
 extend({ OrbitControls});
 
@@ -14,23 +15,49 @@ const Orbit = () => {
 };
 
 const Box = (props) => {
-    const ref = useRef();
-    const texture = useLoader(
-        THREE.TextureLoader,
-        '/wood.jpg'
-    );
+    const ref = useRef(null);
+
     useFrame(state => {
         ref.current.rotation.y += 0.01;
     });
 
     return (
         <mesh ref={ref} {...props} castShadow>
-            <boxBufferGeometry />
+            <sphereBufferGeometry args={[1,100,1000]} />
             <meshPhysicalMaterial
-                map={texture}
+                clearcoat={1}
+                color={'orange'}
             />
         </mesh>
     )
+};
+
+const getImage = () => (
+    axios.get('/autoshop.jgp').then((image) => console.log('image', image))
+);
+
+const Background = props => {
+    useEffect(() => {
+        console.log('firing')
+        const getData = async () => {
+            return await getImage();
+        };
+        getData();
+    }, []);
+
+    const texture = useLoader(
+        THREE.TextureLoader,
+        '/autoshop.jpg'
+    );
+    console.log('texture', texture);
+    const { gl } = useThree();
+    // const formatted = new THREE.WebGLRenderTarget(
+    //     texture.image.height
+    // ).fromEquirectangularTexture(gl, texture);
+
+    return (
+        <primitive object={texture} attach={'background'} />
+    );
 };
 
 const Floor = (props) => {
@@ -52,6 +79,11 @@ const Bulb = props => {
     )
 }
 const App = () => {
+    const background = <Suspense fallback={'Loading Background...'}>
+        <Background/>
+    </Suspense>;
+    console.log('background', background);
+
     return (
         <div style={{height: '100vh', width: '100vw'}}>
             <Canvas
@@ -62,9 +94,9 @@ const App = () => {
                 <ambientLight intensity={0.1} />
                 <Bulb position={[0, 3, 0]} />
                 <axesHelper args={[5]} />
-                <Suspense fallback={null}>
-                    <Box position={[0, 1, 0]} />
-                </Suspense>
+                {background}
+                <Box position={[0, 1, 0]} />
+
                 <Floor position={[0,-0.5,0]} />
                 <Orbit />
             </Canvas>
